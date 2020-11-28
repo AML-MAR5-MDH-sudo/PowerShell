@@ -438,7 +438,9 @@ function Get-ReleaseTag
 function Invoke-CIFinish
 {
     param(
-        [string] $NuGetKey
+        [string] $NuGetKey,
+        [string] $Runtime = 'win7-x64',
+        [string] $Channel = 'preview'
     )
 
     if($PSEdition -eq 'Core' -and ($IsLinux -or $IsMacOS))
@@ -447,23 +449,33 @@ function Invoke-CIFinish
     }
 
     try {
-        $releaseTag = Get-ReleaseTag
 
-        $previewVersion = $releaseTag.Split('-')
-        $previewPrefix = $previewVersion[0]
-        $previewLabel = $previewVersion[1].replace('.','')
-
-        if(Test-DailyBuild)
+        if($Channel -eq 'preview')
         {
-            $previewLabel= "daily{0}" -f $previewLabel
+            $releaseTag = Get-ReleaseTag
+
+            $previewVersion = $releaseTag.Split('-')
+            $previewPrefix = $previewVersion[0]
+            $previewLabel = $previewVersion[1].replace('.','')
+
+            if(Test-DailyBuild)
+            {
+                $previewLabel= "daily{0}" -f $previewLabel
+            }
+
+            $preReleaseVersion = "$previewPrefix-$previewLabel.$env:BUILD_BUILDID"
+            # Build clean before backing to remove files from testing
+            Start-PSBuild -CrossGen -PSModuleRestore -Configuration 'Release' -ReleaseTag $preReleaseVersion -Clean -Runtime $Runtime
+        }
+        else {
+            $releaseTag = Get-ReleaseTag
+            $releaseTagParts = $releaseTag.split('.')
+            $preReleaseVersion = $releaseTagParts[0]+ ".9.9"
+            Write-Verbose "newPSReleaseTag: $preReleaseVersion" -Verbose
+            Start-PSBuild -CrossGen -PSModuleRestore -Configuration 'Release' -ReleaseTag $preReleaseVersion -Clean -Runtime $Runtime
         }
 
-        $preReleaseVersion = "$previewPrefix-$previewLabel.$env:BUILD_BUILDID"
-
-        # Build clean before backing to remove files from testing
-        Start-PSBuild -CrossGen -PSModuleRestore -Configuration 'Release' -ReleaseTag $preReleaseVersion -Clean
-
-        # Build packages
+        # Build packages	            $preReleaseVersion = "$previewPrefix-$previewLabel.$env:BUILD_BUILDID"
         $packages = Start-PSPackage -Type msi,nupkg,zip,zip-pdb -ReleaseTag $preReleaseVersion -SkipReleaseChecks
 
         $artifacts = New-Object System.Collections.ArrayList
@@ -490,6 +502,7 @@ function Invoke-CIFinish
 
         # the packaging tests find the MSI package using env:PSMsiX64Path
         $env:PSMsiX64Path = $artifacts | Where-Object { $_.EndsWith(".msi")}
+        $env:PSMsiChannel = $Channel
 
         # Install the latest Pester and import it
         $maximumPesterVersion = '4.99'
