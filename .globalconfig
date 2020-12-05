@@ -952,7 +952,7 @@ dotnet_diagnostic.IDE0073.severity = suggestion
 dotnet_diagnostic.IDE0074.severity = warning
 
 # IDE0075: SimplifyConditionalExpression
-dotnet_diagnostic.IDE0075.severity = silent
+dotnet_diagnostic.IDE0075.severity = warning
 
 # IDE0076: InvalidSuppressMessageAttribute
 dotnet_diagnostic.IDE0076.severity = silent
@@ -1012,7 +1012,7 @@ dotnet_diagnostic.SA0001.severity = none
 dotnet_diagnostic.SA0002.severity = none
 
 # SA1000: Keywords should be spaced correctly
-dotnet_diagnostic.SA1000.severity = none
+dotnet_diagnostic.SA1000.severity = warning
 
 # SA1001: Commas should be spaced correctly
 dotnet_diagnostic.SA1001.severity = none
